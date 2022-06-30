@@ -1,5 +1,7 @@
+from cgitb import small
 import PySimpleGUI as sg
 import openpyxl
+import datetime
 
 class Bill:
     bill_id = ""
@@ -12,8 +14,11 @@ class Bill:
     cleaning = 0
     night_price_big = 0
     night_price_small = 0
+    cottage_count_small = 0
+    cottage_count_big = 0
     cottage_numbers = ""
     other_expenses = 0
+    total_price = 0
 
 #Function for counting reference number
 #Formula for the reference number https://fi.wikipedia.org/wiki/Tilisiirto
@@ -35,34 +40,71 @@ def count_reference_number(bill_id):
 #Function for getting bill id
 def get_bill_id(entered_id):
     if entered_id != 0:
+        wfile = open('latestbill.txt', 'w')
+        wfile.write(str(entered_id))
+        wfile.close()
         return entered_id
     else:
         file = open('latestbill.txt', 'r')
         bill_id = file.readline()
-        print("In function:",bill_id)
-        #TODO
+        file.close()
+        bill_id = write_next_bill_id(str(bill_id))
         return bill_id
 
-#Function for splitting and figuring out prices
-def split_and_determine_prices(input_price):
+#Figure out next bill_id
+def write_next_bill_id(previous_bill_id):
+    first_two_chars = previous_bill_id[:2]
+    last_characters = previous_bill_id[2:]
+    new_bill_id = f"{first_two_chars}{int(last_characters)+1}"
+    wfile = open("latestbill.txt", "w")
+    wfile.write(new_bill_id)
+    wfile.close()
+    return new_bill_id
+
+#Function for figuring out prices
+def determine_prices(input_price):
     price_list = input_price.split("/")
     small_cottage_price = price_list[0]
     big_cottage_price = price_list[1]
-    if small_cottage_price == 0:
-        pass
+    if small_cottage_price == 0 or small_cottage_price == 145:
+        small_cottage_price = 145
+    if big_cottage_price == 0 or big_cottage_price == 195:
+        big_cottage_price = 195
+    right_prices = [small_cottage_price, big_cottage_price]
+    return right_prices
 
+#Get current date
+def get_date_today():
+    today = datetime.datetime.today()
+    bill_obj.date_bill = today.strftime("%d.%m.%Y")
+
+def count_cleaning_price(pet, cleaning_count):
+    if pet == True:
+        cleaning_price = 65 * cleaning_count
+    else:
+        cleaning_price = 50 * cleaning_count
+    return cleaning_price
+
+def count_rent_price():
+    bill_obj.night_price_small = night_price_list[0]
+    bill_obj.night_price_big = night_price_list[1]
+
+    bill_obj.cottage_count_small = cottage_count_list[0]
+    bill_obj.cottage_count_big = cottage_count_list[1]
+
+    #TODO
 
 
 first_column= [
     [sg.Text("Laskun numero:")],
     [sg.Text("Nimi:")],
-    [sg.Text("Saapumispäivä (dd.mm.yyyy):")],
-    [sg.Text("Lähtöpäivä (dd.kk.yyyy):")],
-    [sg.Text("Yöhinta (pieni/iso | jätä 0, jos tavallinen hinta):")],
-    [sg.Text("Mökkien määrä (pieni/iso):")],
+    [sg.Text("Saapumispäivä:")],
+    [sg.Text("Lähtöpäivä:")],
+    [sg.Text("Yöhinta:")],
+    [sg.Text("Mökkien määrä:")],
     [sg.Text("Mökkien numerot:")],
-    [sg.Text("Liinavaatteet (kpl):")],
-    [sg.Text("Siivous (Määrä):")],
+    [sg.Text("Liinavaatteet:")],
+    [sg.Text("Siivous:")],
     [sg.Text("Muut kulut:")],
     [sg.Button('OK', size = 10)],
 ]
@@ -78,10 +120,23 @@ second_column = [
     [sg.Input(0, size=(25,1), key="-BED_LINEN-")],
     [sg.Input(0, size=(25,1), key="-CLEANING-")],
     [sg.Input(0, size=(25,1), key="-OTHER_EXPENSES-")],
+]
+
+third_column= [
+    [sg.Text("(0 tai väh. 3 kirjainta)")],
+    [sg.Text("")],
+    [sg.Text("(dd.mm.yyyy):")],
+    [sg.Text("(dd.kk.yyyy):")],
+    [sg.Text("(pieni/iso | jätä 0, jos tavallinen hinta)")],
+    [sg.Text("(pieni/iso)")],
+    [sg.Text("")],
+    [sg.Text("(kpl)")],
+    [sg.Checkbox("Lemmikki", default=False, key="-PET-")],
+    [sg.Text("")],
     [sg.Button("Exit", size = 10)]
 ]
 
-custom_layout = [[sg.Column(first_column),sg.Column(second_column)],]
+custom_layout = [[sg.Column(first_column, vertical_alignment="t"), sg.Column(second_column, vertical_alignment="t"), sg.Column(third_column, vertical_alignment="t")]]
 
 window = sg.Window(title="Laskut", layout=custom_layout, margins=(50, 25))
 
@@ -93,14 +148,25 @@ while True:
     #Getting all the texts when 'OK' is pressed
     if event == "OK":
         bill_obj = Bill()
-        bill_obj.bill_id = get_bill_id(int(values["-BILL_ID-"]))
         bill_obj.name = values["-NAME-"]
+        bill_obj.cottage_numbers = values["-COTTAGE_NUMBERS-"]
+
+        get_date_today()
+        bill_obj.bill_id = get_bill_id(int(values["-BILL_ID-"]))
+        bill_obj.reference_number = count_reference_number(bill_obj.bill_id)
+
+        night_price_list = determine_prices(values["-NIGHT_PRICES-"])
+        cottage_count_list = values["-COTTAGE_COUNT-"].split("/")
+
         bill_obj.date_arrival = values["-ARRIVAL_DATE-"]
         bill_obj.date_departure = values["-DEPARTURE_DATE-"]
+
         bill_obj.bed_linen = values["-BED_LINEN-"]
         bill_obj.cleaning = values["-CLEANING-"]
         bill_obj.other_expenses = values["-OTHER_EXPENSES-"]
 
-        night_price_list = split_and_determine_prices(values["-NIGHT_PRICES-"])
-
-        print("Out of function:",bill_obj.bill_id)
+        #Begin counting total price
+        bill_obj.total_price = count_cleaning_price(values["-PET-"], bill_obj.cleaning)
+        bill_obj.total_price = bill_obj.total_price + (bill_obj.bed_linen * 15)
+        bill_obj.total_price = bill_obj.total_price + bill_obj.other_expenses
+        bill_obj.total_price = bill_obj.total_price + count_rent_price(night_price_list, cottage_count_list, bill_obj.date_arrival, bill_obj.date_departure)
