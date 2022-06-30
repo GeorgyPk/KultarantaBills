@@ -20,7 +20,7 @@ class Bill:
     other_expenses = 0
     total_price = 0
 
-#Function for counting reference number
+#Function for counting reference number (working)
 #Formula for the reference number https://fi.wikipedia.org/wiki/Tilisiirto
 def count_reference_number(bill_id):
     multiplier_list = []
@@ -37,7 +37,7 @@ def count_reference_number(bill_id):
     print("Reference number:", reference_number)
     return reference_number
 
-#Function for getting bill id
+#Function for getting bill id (working)
 def get_bill_id(entered_id):
     if entered_id != 0:
         wfile = open('latestbill.txt', 'w')
@@ -51,7 +51,7 @@ def get_bill_id(entered_id):
         bill_id = write_next_bill_id(str(bill_id))
         return bill_id
 
-#Figure out next bill_id
+#Figure out next bill_id (working)
 def write_next_bill_id(previous_bill_id):
     first_two_chars = previous_bill_id[:2]
     last_characters = previous_bill_id[2:]
@@ -61,11 +61,11 @@ def write_next_bill_id(previous_bill_id):
     wfile.close()
     return new_bill_id
 
-#Function for figuring out prices
+#Function for figuring out prices (working)
 def determine_prices(input_price):
     price_list = input_price.split("/")
-    small_cottage_price = price_list[0]
-    big_cottage_price = price_list[1]
+    small_cottage_price = int(price_list[0])
+    big_cottage_price = int(price_list[1])
     if small_cottage_price == 0 or small_cottage_price == 145:
         small_cottage_price = 145
     if big_cottage_price == 0 or big_cottage_price == 195:
@@ -73,11 +73,12 @@ def determine_prices(input_price):
     right_prices = [small_cottage_price, big_cottage_price]
     return right_prices
 
-#Get current date
+#Get current date (working)
 def get_date_today():
     today = datetime.datetime.today()
     bill_obj.date_bill = today.strftime("%d.%m.%Y")
 
+#Count price
 def count_cleaning_price(pet, cleaning_count):
     if pet == True:
         cleaning_price = 65 * cleaning_count
@@ -85,14 +86,24 @@ def count_cleaning_price(pet, cleaning_count):
         cleaning_price = 50 * cleaning_count
     return cleaning_price
 
-def count_rent_price():
+#Count rent price of the cottages (working)
+def count_rent_price(night_price_list, cottage_count_list, arrival, departure):
+    arrival = datetime.datetime.strptime(arrival, '%d.%m.%Y')
+    departure = datetime.datetime.strptime(departure, '%d.%m.%Y')
+    delta = departure - arrival
+    nights = delta.days
+
     bill_obj.night_price_small = night_price_list[0]
     bill_obj.night_price_big = night_price_list[1]
 
     bill_obj.cottage_count_small = cottage_count_list[0]
     bill_obj.cottage_count_big = cottage_count_list[1]
 
-    #TODO
+    #print("Price small:",bill_obj.night_price_small,"\nPrice big:",bill_obj.night_price_big,"\nCottage count small:",bill_obj.cottage_count_small,"\nCottage count big:",bill_obj.cottage_count_big)
+    small_cottage_total_price = int(bill_obj.night_price_small) * int(bill_obj.cottage_count_small) * int(nights)
+    big_cottage_total_price = int(bill_obj.night_price_big) * int(bill_obj.cottage_count_big) * int(nights)
+    total_price = small_cottage_total_price + big_cottage_total_price
+    return 0
 
 
 first_column= [
@@ -106,7 +117,7 @@ first_column= [
     [sg.Text("Liinavaatteet:")],
     [sg.Text("Siivous:")],
     [sg.Text("Muut kulut:")],
-    [sg.Button('OK', size = 10)],
+    [sg.Button('OK', size = 10, bind_return_key=True)],
 ]
 
 second_column = [
@@ -169,4 +180,4 @@ while True:
         bill_obj.total_price = count_cleaning_price(values["-PET-"], bill_obj.cleaning)
         bill_obj.total_price = bill_obj.total_price + (bill_obj.bed_linen * 15)
         bill_obj.total_price = bill_obj.total_price + bill_obj.other_expenses
-        bill_obj.total_price = bill_obj.total_price + count_rent_price(night_price_list, cottage_count_list, bill_obj.date_arrival, bill_obj.date_departure)
+        bill_obj.total_price = int(bill_obj.total_price) + int(count_rent_price(night_price_list, cottage_count_list, bill_obj.date_arrival, bill_obj.date_departure))
