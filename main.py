@@ -22,7 +22,7 @@ class Bill:
 
 #Function for counting reference number (working)
 #Formula for the reference number https://fi.wikipedia.org/wiki/Tilisiirto
-def count_reference_number(bill_id):
+def calculate_reference_number(bill_id):
     multiplier_list = []
     for i in range(0, 30):
         multiplier_list.extend([7, 3, 1])
@@ -78,16 +78,17 @@ def get_date_today():
     today = datetime.datetime.today()
     bill_obj.date_bill = today.strftime("%d.%m.%Y")
 
-#Count price
-def count_cleaning_price(pet, cleaning_count):
+#Count price (working)
+def calculate_cleaning_price(pet, cleaning_count):
+    cleaning_price = 0
     if pet == True:
-        cleaning_price = 65 * cleaning_count
+        cleaning_price = 65 * int(cleaning_count)
     else:
-        cleaning_price = 50 * cleaning_count
+        cleaning_price = 50 * int(cleaning_count)
     return cleaning_price
 
-#Count rent price of the cottages (working)
-def count_rent_price(night_price_list, cottage_count_list, arrival, departure):
+#Calculate rent price of the cottages (working)
+def calculate_rent_price(night_price_list, cottage_count_list, arrival, departure):
     arrival = datetime.datetime.strptime(arrival, '%d.%m.%Y')
     departure = datetime.datetime.strptime(departure, '%d.%m.%Y')
     delta = departure - arrival
@@ -103,7 +104,14 @@ def count_rent_price(night_price_list, cottage_count_list, arrival, departure):
     small_cottage_total_price = int(bill_obj.night_price_small) * int(bill_obj.cottage_count_small) * int(nights)
     big_cottage_total_price = int(bill_obj.night_price_big) * int(bill_obj.cottage_count_big) * int(nights)
     total_price = small_cottage_total_price + big_cottage_total_price
-    return 0
+    return total_price
+
+#Calculating taxes
+def calculate_taxes(price_with_taxes):
+    before_taxes = float(price_with_taxes) / 1.1
+    taxes = float(price_with_taxes) - float(before_taxes)
+    list_of_prices = [before_taxes, taxes, price_with_taxes]
+    return list_of_prices
 
 
 first_column= [
@@ -164,7 +172,7 @@ while True:
 
         get_date_today()
         bill_obj.bill_id = get_bill_id(int(values["-BILL_ID-"]))
-        bill_obj.reference_number = count_reference_number(bill_obj.bill_id)
+        bill_obj.reference_number = calculate_reference_number(bill_obj.bill_id)
 
         night_price_list = determine_prices(values["-NIGHT_PRICES-"])
         cottage_count_list = values["-COTTAGE_COUNT-"].split("/")
@@ -176,8 +184,11 @@ while True:
         bill_obj.cleaning = values["-CLEANING-"]
         bill_obj.other_expenses = values["-OTHER_EXPENSES-"]
 
-        #Begin counting total price
-        bill_obj.total_price = count_cleaning_price(values["-PET-"], bill_obj.cleaning)
-        bill_obj.total_price = bill_obj.total_price + (bill_obj.bed_linen * 15)
-        bill_obj.total_price = bill_obj.total_price + bill_obj.other_expenses
-        bill_obj.total_price = int(bill_obj.total_price) + int(count_rent_price(night_price_list, cottage_count_list, bill_obj.date_arrival, bill_obj.date_departure))
+        #Begin calculating total price (working)
+        bill_obj.total_price = int(calculate_cleaning_price(values["-PET-"], bill_obj.cleaning))
+        bill_obj.total_price = int(bill_obj.total_price) + (int(bill_obj.bed_linen) * 15)
+        bill_obj.total_price = int(bill_obj.total_price) + int(bill_obj.other_expenses)
+        bill_obj.total_price = int(bill_obj.total_price) + int(calculate_rent_price(night_price_list, cottage_count_list, bill_obj.date_arrival, bill_obj.date_departure))
+
+        #Creating actual Excel file using empty example of the bill
+        
